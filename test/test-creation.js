@@ -674,6 +674,9 @@ describe('JHipster generator', function () {
                     "devDatabaseType": "h2Memory",
                     "prodDatabaseType": "mysql",
                     "buildTool": "maven",
+                    "enableTranslation": true,
+                    "nativeLanguage": 'en',
+                    "languages": ['fr'],
                     "rememberMeKey": "5c37379956bd1242f5636c8cb322c2966ad81277",
                     "searchEngine": "no"
                 })
@@ -704,6 +707,9 @@ describe('JHipster generator', function () {
                     "devDatabaseType": "h2Memory",
                     "prodDatabaseType": "mysql",
                     "buildTool": "gradle",
+                    "enableTranslation": true,
+                    "nativeLanguage": 'en',
+                    "languages": ['fr'],
                     "rememberMeKey": "5c37379956bd1242f5636c8cb322c2966ad81277",
                     "searchEngine": "no"
                 })
@@ -755,7 +761,7 @@ describe('JHipster generator', function () {
     describe('microservice', function () {
         beforeEach(function (done) {
             helpers.run(path.join(__dirname, '../generators/app'))
-                .withOptions({skipInstall: true, checkInstall: false})
+                .withOptions({skipInstall: true, checkInstall: false, skipClient: true, skipUserManagement: true})
                 .withPrompts({
                     "applicationType": "microservice",
                     "baseName": "jhipster",
@@ -775,9 +781,7 @@ describe('JHipster generator', function () {
                     "buildTool": "maven",
                     "rememberMeKey": "5c37379956bd1242f5636c8cb322c2966ad81277",
                     "searchEngine": "no",
-                    "enableSocialSignIn": false,
-                    "skipClient": true,
-                    "skipUserManagement": true
+                    "enableSocialSignIn": false
                 })
                 .on('end', done);
         });
