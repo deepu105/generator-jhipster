@@ -70,59 +70,67 @@ module.exports = class extends BaseGenerator {
         }
     }
 
-    initializing() {
-        if (this.languages) {
-            if (this.skipClient) {
-                this.log(chalk.bold(`\nInstalling languages: ${this.languages.join(', ')} for server`));
-            } else if (this.skipServer) {
-                this.log(chalk.bold(`\nInstalling languages: ${this.languages.join(', ')} for client`));
-            } else {
-                this.log(chalk.bold(`\nInstalling languages: ${this.languages.join(', ')}`));
+    get initializing() {
+        return {
+            init() {
+                if (this.languages) {
+                    if (this.skipClient) {
+                        this.log(chalk.bold(`\nInstalling languages: ${this.languages.join(', ')} for server`));
+                    } else if (this.skipServer) {
+                        this.log(chalk.bold(`\nInstalling languages: ${this.languages.join(', ')} for client`));
+                    } else {
+                        this.log(chalk.bold(`\nInstalling languages: ${this.languages.join(', ')}`));
+                    }
+                    this.languagesToApply = this.languages || [];
+                } else {
+                    this.log(chalk.bold('\nLanguages configuration is starting'));
+                }
+                this.applicationType = this.config.get('applicationType');
+                this.baseName = this.config.get('baseName');
+                this.capitalizedBaseName = _.upperFirst(this.baseName);
+                this.websocket = this.config.get('websocket') === 'no' ? false : this.config.get('websocket');
+                this.databaseType = this.config.get('databaseType');
+                this.searchEngine = this.config.get('searchEngine') === 'no' ? false : this.config.get('searchEngine');
+                this.messageBroker = this.config.get('messageBroker') === 'no' ? false : this.config.get('messageBroker');
+                this.env.options.appPath = this.config.get('appPath') || constants.CLIENT_MAIN_SRC_DIR;
+                this.enableTranslation = this.config.get('enableTranslation');
+                this.currentLanguages = this.config.get('languages');
+                this.clientFramework = this.config.get('clientFramework');
+                this.serviceDiscoveryType = this.config.get('serviceDiscoveryType');
+                // Make dist dir available in templates
+                if (this.config.get('buildTool') === 'maven') {
+                    this.BUILD_DIR = 'target/';
+                } else {
+                    this.BUILD_DIR = 'build/';
+                }
             }
-            this.languagesToApply = this.languages || [];
-        } else {
-            this.log(chalk.bold('\nLanguages configuration is starting'));
-        }
-        this.applicationType = this.config.get('applicationType');
-        this.baseName = this.config.get('baseName');
-        this.capitalizedBaseName = _.upperFirst(this.baseName);
-        this.websocket = this.config.get('websocket') === 'no' ? false : this.config.get('websocket');
-        this.databaseType = this.config.get('databaseType');
-        this.searchEngine = this.config.get('searchEngine') === 'no' ? false : this.config.get('searchEngine');
-        this.messageBroker = this.config.get('messageBroker') === 'no' ? false : this.config.get('messageBroker');
-        this.env.options.appPath = this.config.get('appPath') || constants.CLIENT_MAIN_SRC_DIR;
-        this.enableTranslation = this.config.get('enableTranslation');
-        this.currentLanguages = this.config.get('languages');
-        this.clientFramework = this.config.get('clientFramework');
-        this.serviceDiscoveryType = this.config.get('serviceDiscoveryType');
-        // Make dist dir available in templates
-        if (this.config.get('buildTool') === 'maven') {
-            this.BUILD_DIR = 'target/';
-        } else {
-            this.BUILD_DIR = 'build/';
-        }
+        };
     }
 
-    prompting() {
-        if (this.languages) return;
+    get prompting() {
+        return {
+            prompt() {
+                if (this.languages) return;
 
-        const done = this.async();
-        const languageOptions = this.getAllSupportedLanguageOptions();
-        const prompts = [
-            {
-                type: 'checkbox',
-                name: 'languages',
-                message: 'Please choose additional languages to install',
-                choices: languageOptions
-            }];
-        if (this.enableTranslation || configOptions.enableTranslation) {
-            this.prompt(prompts).then((props) => {
-                this.languagesToApply = props.languages || [];
-                done();
-            });
-        } else {
-            this.log(chalk.red('Translation is disabled for the project. Languages cannot be added.'));
-        }
+                const done = this.async();
+                const languageOptions = this.getAllSupportedLanguageOptions();
+                const prompts = [
+                    {
+                        type: 'checkbox',
+                        name: 'languages',
+                        message: 'Please choose additional languages to install',
+                        choices: languageOptions
+                    }];
+                if (this.enableTranslation || configOptions.enableTranslation) {
+                    this.prompt(prompts).then((props) => {
+                        this.languagesToApply = props.languages || [];
+                        done();
+                    });
+                } else {
+                    this.log(chalk.red('Translation is disabled for the project. Languages cannot be added.'));
+                }
+            }
+        };
     }
 
     get default() {
@@ -176,21 +184,25 @@ module.exports = class extends BaseGenerator {
         };
     }
 
-    writing() {
-        const insight = this.insight();
-        this.languagesToApply.forEach((language) => {
-            if (!this.skipClient) {
-                this.installI18nClientFilesByLanguage(this, constants.CLIENT_MAIN_SRC_DIR, language);
+    get writing() {
+        return {
+            write() {
+                const insight = this.insight();
+                this.languagesToApply.forEach((language) => {
+                    if (!this.skipClient) {
+                        this.installI18nClientFilesByLanguage(this, constants.CLIENT_MAIN_SRC_DIR, language);
+                    }
+                    if (!this.skipServer) {
+                        this.installI18nServerFilesByLanguage(this, constants.SERVER_MAIN_RES_DIR, language);
+                    }
+                    insight.track('languages/language', language);
+                });
+                if (!this.skipClient) {
+                    this.updateLanguagesInLanguagePipe(this.config.get('languages'));
+                    this.updateLanguagesInLanguageConstantNG2(this.config.get('languages'));
+                    this.updateLanguagesInWebpack(this.config.get('languages'));
+                }
             }
-            if (!this.skipServer) {
-                this.installI18nServerFilesByLanguage(this, constants.SERVER_MAIN_RES_DIR, language);
-            }
-            insight.track('languages/language', language);
-        });
-        if (!this.skipClient) {
-            this.updateLanguagesInLanguagePipe(this.config.get('languages'));
-            this.updateLanguagesInLanguageConstantNG2(this.config.get('languages'));
-            this.updateLanguagesInWebpack(this.config.get('languages'));
-        }
+        };
     }
 };

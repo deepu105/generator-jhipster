@@ -128,7 +128,16 @@ module.exports = class extends BaseGenerator {
 
         this.setupClientOptions(this);
         const blueprint = this.options.blueprint || this.configOptions.blueprint || this.config.get('blueprint');
-        useBlueprint = this.composeBlueprint(blueprint, 'client'); // use global variable since getters dont have access to instance property
+        // use global variable since getters dont have access to instance property
+        useBlueprint = this.composeBlueprint(
+            blueprint,
+            'client',
+            {
+                'skip-install': this.options['skip-install'],
+                configOptions: this.configOptions,
+                force: this.options.force
+            }
+        );
     }
 
     get initializing() {
@@ -359,52 +368,64 @@ module.exports = class extends BaseGenerator {
         };
     }
 
-    writing() {
+    get writing() {
         if (useBlueprint) return;
-        switch (this.clientFramework) {
-        case 'react':
-            return writeReactFiles.call(this);
-        default:
-            return writeAngularFiles.call(this);
-        }
-    }
-
-    install() {
-        if (useBlueprint) return;
-        const logMsg =
-            `To install your dependencies manually, run: ${chalk.yellow.bold(`${this.clientPackageManager} install`)}`;
-
-        const installConfig = {
-            bower: false,
-            npm: this.clientPackageManager !== 'yarn',
-            yarn: this.clientPackageManager === 'yarn'
-        };
-
-        if (this.options['skip-install']) {
-            this.log(logMsg);
-        } else {
-            this.installDependencies(installConfig).then(
-                () => {
-                    this.buildResult = this.spawnCommandSync(this.clientPackageManager, ['run', 'webpack:build']);
-                },
-                (err) => {
-                    this.warning('Install of dependencies failed!');
-                    this.log(logMsg);
+        return {
+            write() {
+                switch (this.clientFramework) {
+                case 'react':
+                    return writeReactFiles.call(this);
+                default:
+                    return writeAngularFiles.call(this);
                 }
-            );
-        }
+            }
+        };
     }
 
-    end() {
+    get install() {
         if (useBlueprint) return;
-        if (this.buildResult !== undefined && this.buildResult.status !== 0) {
-            this.error('webpack:build failed.');
-        }
-        this.log(chalk.green.bold('\nClient application generated successfully.\n'));
+        return {
+            installDeps() {
+                const logMsg =
+                    `To install your dependencies manually, run: ${chalk.yellow.bold(`${this.clientPackageManager} install`)}`;
 
-        const logMsg =
-            `Start your Webpack development server with:\n ${chalk.yellow.bold(`${this.clientPackageManager} start`)}\n`;
+                const installConfig = {
+                    bower: false,
+                    npm: this.clientPackageManager !== 'yarn',
+                    yarn: this.clientPackageManager === 'yarn'
+                };
 
-        this.log(chalk.green(logMsg));
+                if (this.options['skip-install']) {
+                    this.log(logMsg);
+                } else {
+                    this.installDependencies(installConfig).then(
+                        () => {
+                            this.buildResult = this.spawnCommandSync(this.clientPackageManager, ['run', 'webpack:build']);
+                        },
+                        (err) => {
+                            this.warning('Install of dependencies failed!');
+                            this.log(logMsg);
+                        }
+                    );
+                }
+            }
+        };
+    }
+
+    get end() {
+        if (useBlueprint) return;
+        return {
+            postCreation() {
+                if (this.buildResult !== undefined && this.buildResult.status !== 0) {
+                    this.error('webpack:build failed.');
+                }
+                this.log(chalk.green.bold('\nClient application generated successfully.\n'));
+
+                const logMsg =
+                    `Start your Webpack development server with:\n ${chalk.yellow.bold(`${this.clientPackageManager} start`)}\n`;
+
+                this.log(chalk.green(logMsg));
+            }
+        };
     }
 };

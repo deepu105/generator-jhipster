@@ -184,50 +184,54 @@ module.exports = class extends BaseGenerator {
     }
 
     end() {
-        if (this.warning) {
-            this.log(`\n${chalk.yellow.bold('WARNING!')} Kubernetes configuration generated with missing images!`);
-            this.log(this.warningMessage);
-        } else {
-            this.log(`\n${chalk.bold.green('Kubernetes configuration successfully generated!')}`);
-        }
+        return {
+            finish() {
+                if (this.warning) {
+                    this.log(`\n${chalk.yellow.bold('WARNING!')} Kubernetes configuration generated with missing images!`);
+                    this.log(this.warningMessage);
+                } else {
+                    this.log(`\n${chalk.bold.green('Kubernetes configuration successfully generated!')}`);
+                }
 
-        this.log(`${chalk.yellow.bold('WARNING!')} You will need to push your image to a registry. If you have not done so, use the following commands to tag and push the images:`);
-        for (let i = 0; i < this.appsFolders.length; i++) {
-            const originalImageName = this.appConfigs[i].baseName.toLowerCase();
-            const targetImageName = this.appConfigs[i].targetImageName;
-            if (originalImageName !== targetImageName) {
-                this.log(`  ${chalk.cyan(`docker image tag ${originalImageName} ${targetImageName}`)}`);
-            }
-            this.log(`  ${chalk.cyan(`${this.dockerPushCommand} ${targetImageName}`)}`);
-        }
+                this.log(`${chalk.yellow.bold('WARNING!')} You will need to push your image to a registry. If you have not done so, use the following commands to tag and push the images:`);
+                for (let i = 0; i < this.appsFolders.length; i++) {
+                    const originalImageName = this.appConfigs[i].baseName.toLowerCase();
+                    const targetImageName = this.appConfigs[i].targetImageName;
+                    if (originalImageName !== targetImageName) {
+                        this.log(`  ${chalk.cyan(`docker image tag ${originalImageName} ${targetImageName}`)}`);
+                    }
+                    this.log(`  ${chalk.cyan(`${this.dockerPushCommand} ${targetImageName}`)}`);
+                }
 
-        this.log('\nYou can deploy all your apps by running: ');
-        this.log(`  ${chalk.cyan(`sh ${this.directoryPath}k8s/kubectl-apply.sh`)}`);
-        this.log('OR');
-        if (this.kubernetesNamespace !== 'default') {
-            this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/namespace.yml`)}`);
-        }
-        if (this.monitoring === 'elk') {
-            this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/console`)}`);
-        }
-        if (this.monitoring === 'prometheus') {
-            this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/monitoring`)}`);
-        }
-        for (let i = 0, regIndex = 0; i < this.appsFolders.length; i++) {
-            this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/${this.appConfigs[i].baseName.toLowerCase()}`)}`);
-            if (regIndex++ === 0 && this.appConfigs[i].serviceDiscoveryType !== false) {
-                this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/registry`)}`);
-            }
-        }
-        if (this.gatewayNb + this.monolithicNb >= 1) {
-            const namespaceSuffix = this.kubernetesNamespace === 'default' ? '' : ` -n ${this.kubernetesNamespace}`;
-            this.log('\nUse these commands to find your application\'s IP addresses:');
-            for (let i = 0; i < this.appsFolders.length; i++) {
-                if (this.appConfigs[i].applicationType === 'gateway' || this.appConfigs[i].applicationType === 'monolith') {
-                    this.log(`  ${chalk.cyan(`kubectl get svc ${this.appConfigs[i].baseName.toLowerCase()}${namespaceSuffix}`)}`);
+                this.log('\nYou can deploy all your apps by running: ');
+                this.log(`  ${chalk.cyan(`sh ${this.directoryPath}k8s/kubectl-apply.sh`)}`);
+                this.log('OR');
+                if (this.kubernetesNamespace !== 'default') {
+                    this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/namespace.yml`)}`);
+                }
+                if (this.monitoring === 'elk') {
+                    this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/console`)}`);
+                }
+                if (this.monitoring === 'prometheus') {
+                    this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/monitoring`)}`);
+                }
+                for (let i = 0, regIndex = 0; i < this.appsFolders.length; i++) {
+                    this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/${this.appConfigs[i].baseName.toLowerCase()}`)}`);
+                    if (regIndex++ === 0 && this.appConfigs[i].serviceDiscoveryType !== false) {
+                        this.log(`  ${chalk.cyan(`kubectl apply -f ${this.directoryPath}k8s/registry`)}`);
+                    }
+                }
+                if (this.gatewayNb + this.monolithicNb >= 1) {
+                    const namespaceSuffix = this.kubernetesNamespace === 'default' ? '' : ` -n ${this.kubernetesNamespace}`;
+                    this.log('\nUse these commands to find your application\'s IP addresses:');
+                    for (let i = 0; i < this.appsFolders.length; i++) {
+                        if (this.appConfigs[i].applicationType === 'gateway' || this.appConfigs[i].applicationType === 'monolith') {
+                            this.log(`  ${chalk.cyan(`kubectl get svc ${this.appConfigs[i].baseName.toLowerCase()}${namespaceSuffix}`)}`);
+                        }
+                    }
+                    this.log();
                 }
             }
-            this.log();
-        }
+        };
     }
 };

@@ -29,7 +29,13 @@ module.exports = class extends BaseGenerator {
         super(args, opts);
         utils.copyObjectProps(this, this.options.context);
         const blueprint = this.config.get('blueprint');
-        useBlueprint = this.composeBlueprint(blueprint, 'entity'); // use global variable since getters dont have access to instance property
+        // use global variable since getters dont have access to instance property
+        useBlueprint = this.composeBlueprint(blueprint, 'entity-client', {
+            context: this.options.context,
+            'skip-install': this.options.context.options['skip-install'],
+            force: this.options.context.options.force,
+            debug: this.options.context.isDebugEnabled
+        });
     }
 
     get writing() {
@@ -37,11 +43,15 @@ module.exports = class extends BaseGenerator {
         return writeFiles();
     }
 
-    end() {
+    get end() {
         if (useBlueprint) return;
-        if (!this.options['skip-install'] && !this.skipClient) {
-            this.rebuildClient();
-        }
-        this.log(chalk.bold.green(`Entity ${this.entityNameCapitalized} generated successfully.`));
+        return {
+            installDeps() {
+                if (!this.options['skip-install'] && !this.skipClient) {
+                    this.rebuildClient();
+                }
+                this.log(chalk.bold.green(`Entity ${this.entityNameCapitalized} generated successfully.`));
+            }
+        };
     }
 };

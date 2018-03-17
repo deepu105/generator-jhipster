@@ -33,15 +33,19 @@ module.exports = class extends BaseGenerator {
         this.name = this.options.name;
     }
 
-    initializing() {
-        this.log(`The spring-controller ${this.name} is being created.`);
-        this.baseName = this.config.get('baseName');
-        this.reactive = this.config.get('reactive');
-        this.packageName = this.config.get('packageName');
-        this.packageFolder = this.config.get('packageFolder');
-        this.databaseType = this.config.get('databaseType');
-        this.reactiveController = false;
-        this.controllerActions = [];
+    get initializing() {
+        return {
+            init() {
+                this.log(`The spring-controller ${this.name} is being created.`);
+                this.baseName = this.config.get('baseName');
+                this.reactive = this.config.get('reactive');
+                this.packageName = this.config.get('packageName');
+                this.packageFolder = this.config.get('packageFolder');
+                this.databaseType = this.config.get('databaseType');
+                this.reactiveController = false;
+                this.controllerActions = [];
+            }
+        };
     }
 
     get prompting() {
@@ -63,45 +67,49 @@ module.exports = class extends BaseGenerator {
         };
     }
 
-    writing() {
-        this.controllerClass = _.upperFirst(this.name);
-        this.controllerInstance = _.lowerFirst(this.name);
-        this.apiPrefix = _.kebabCase(this.name);
+    get writing() {
+        return {
+            write() {
+                this.controllerClass = _.upperFirst(this.name);
+                this.controllerInstance = _.lowerFirst(this.name);
+                this.apiPrefix = _.kebabCase(this.name);
 
-        if (this.controllerActions.length === 0) {
-            this.log(chalk.green('No controller actions found, addin a default action'));
-            this.controllerActions.push({
-                actionName: 'defaultAction',
-                actionMethod: 'Get'
-            });
-        }
+                if (this.controllerActions.length === 0) {
+                    this.log(chalk.green('No controller actions found, addin a default action'));
+                    this.controllerActions.push({
+                        actionName: 'defaultAction',
+                        actionMethod: 'Get'
+                    });
+                }
 
-        // helper for Java imports
-        this.usedMethods = _.uniq(this.controllerActions.map(action => action.actionMethod));
-        this.usedMethods = this.usedMethods.sort();
+                // helper for Java imports
+                this.usedMethods = _.uniq(this.controllerActions.map(action => action.actionMethod));
+                this.usedMethods = this.usedMethods.sort();
 
-        this.mappingImports = this.usedMethods.map(method => `org.springframework.web.bind.annotation.${method}Mapping`);
-        this.mockRequestImports = this.usedMethods.map(method => `static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.${method.toLowerCase()}`);
+                this.mappingImports = this.usedMethods.map(method => `org.springframework.web.bind.annotation.${method}Mapping`);
+                this.mockRequestImports = this.usedMethods.map(method => `static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.${method.toLowerCase()}`);
 
-        // IntelliJ optimizes imports after a certain count
-        this.mockRequestImports = this.mockRequestImports.length > 3 ? ['static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*'] : this.mockRequestImports;
+                // IntelliJ optimizes imports after a certain count
+                this.mockRequestImports = this.mockRequestImports.length > 3 ? ['static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*'] : this.mockRequestImports;
 
-        this.mainClass = this.getMainClassName();
+                this.mainClass = this.getMainClassName();
 
-        this.controllerActions.forEach((action) => {
-            action.actionPath = _.kebabCase(action.actionName);
-            action.actionNameUF = _.upperFirst(action.actionName);
-            this.log(chalk.green(`adding ${action.actionMethod} action '${action.actionName}' for /api/${this.apiPrefix}/${action.actionPath}`));
-        });
+                this.controllerActions.forEach((action) => {
+                    action.actionPath = _.kebabCase(action.actionName);
+                    action.actionNameUF = _.upperFirst(action.actionName);
+                    this.log(chalk.green(`adding ${action.actionMethod} action '${action.actionName}' for /api/${this.apiPrefix}/${action.actionPath}`));
+                });
 
-        this.template(
-            `${SERVER_MAIN_SRC_DIR}package/web/rest/Resource.java.ejs`,
-            `${SERVER_MAIN_SRC_DIR}${this.packageFolder}/web/rest/${this.controllerClass}Resource.java`
-        );
+                this.template(
+                    `${SERVER_MAIN_SRC_DIR}package/web/rest/Resource.java.ejs`,
+                    `${SERVER_MAIN_SRC_DIR}${this.packageFolder}/web/rest/${this.controllerClass}Resource.java`
+                );
 
-        this.template(
-            `${SERVER_TEST_SRC_DIR}package/web/rest/ResourceIntTest.java.ejs`,
-            `${SERVER_TEST_SRC_DIR}${this.packageFolder}/web/rest/${this.controllerClass}ResourceIntTest.java`
-        );
+                this.template(
+                    `${SERVER_TEST_SRC_DIR}package/web/rest/ResourceIntTest.java.ejs`,
+                    `${SERVER_TEST_SRC_DIR}${this.packageFolder}/web/rest/${this.controllerClass}ResourceIntTest.java`
+                );
+            }
+        };
     }
 };

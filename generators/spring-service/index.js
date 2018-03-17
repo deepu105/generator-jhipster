@@ -30,29 +30,37 @@ module.exports = class extends BaseGenerator {
         this.name = this.options.name;
     }
 
-    initializing() {
-        this.log(`The service ${this.name} is being created.`);
-        this.baseName = this.config.get('baseName');
-        this.packageName = this.config.get('packageName');
-        this.packageFolder = this.config.get('packageFolder');
-        this.databaseType = this.config.get('databaseType');
+    get initializing() {
+        return {
+            init() {
+                this.log(`The service ${this.name} is being created.`);
+                this.baseName = this.config.get('baseName');
+                this.packageName = this.config.get('packageName');
+                this.packageFolder = this.config.get('packageFolder');
+                this.databaseType = this.config.get('databaseType');
+            }
+        };
     }
 
-    prompting() {
-        const done = this.async();
+    get prompting() {
+        return {
+            prompt() {
+                const done = this.async();
 
-        const prompts = [
-            {
-                type: 'confirm',
-                name: 'useInterface',
-                message: '(1/1) Do you want to use an interface for your service?',
-                default: false
+                const prompts = [
+                    {
+                        type: 'confirm',
+                        name: 'useInterface',
+                        message: '(1/1) Do you want to use an interface for your service?',
+                        default: false
+                    }
+                ];
+                this.prompt(prompts).then((props) => {
+                    this.useInterface = props.useInterface;
+                    done();
+                });
             }
-        ];
-        this.prompt(prompts).then((props) => {
-            this.useInterface = props.useInterface;
-            done();
-        });
+        };
     }
 
     get default() {
@@ -65,20 +73,24 @@ module.exports = class extends BaseGenerator {
         };
     }
 
-    writing() {
-        this.serviceClass = _.upperFirst(this.name);
-        this.serviceInstance = _.lowerCase(this.name);
+    get writing() {
+        return {
+            write() {
+                this.serviceClass = _.upperFirst(this.name);
+                this.serviceInstance = _.lowerCase(this.name);
 
-        this.template(
-            `${SERVER_MAIN_SRC_DIR}package/service/Service.java.ejs`,
-            `${SERVER_MAIN_SRC_DIR + this.packageFolder}/service/${this.serviceClass}Service.java`
-        );
+                this.template(
+                    `${SERVER_MAIN_SRC_DIR}package/service/Service.java.ejs`,
+                    `${SERVER_MAIN_SRC_DIR + this.packageFolder}/service/${this.serviceClass}Service.java`
+                );
 
-        if (this.useInterface) {
-            this.template(
-                `${SERVER_MAIN_SRC_DIR}package/service/impl/ServiceImpl.java.ejs`,
-                `${SERVER_MAIN_SRC_DIR + this.packageFolder}/service/impl/${this.serviceClass}ServiceImpl.java`
-            );
-        }
+                if (this.useInterface) {
+                    this.template(
+                        `${SERVER_MAIN_SRC_DIR}package/service/impl/ServiceImpl.java.ejs`,
+                        `${SERVER_MAIN_SRC_DIR + this.packageFolder}/service/impl/${this.serviceClass}ServiceImpl.java`
+                    );
+                }
+            }
+        };
     }
 };

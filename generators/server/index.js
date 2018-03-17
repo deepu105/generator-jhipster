@@ -79,7 +79,16 @@ module.exports = class extends BaseGenerator {
 
         this.setupServerOptions(this);
         const blueprint = this.options.blueprint || this.configOptions.blueprint || this.config.get('blueprint');
-        useBlueprint = this.composeBlueprint(blueprint, 'server'); // use global variable since getters dont have access to instance property
+        // use global variable since getters dont have access to instance property
+        useBlueprint = this.composeBlueprint(
+            blueprint,
+            'server',
+            {
+                'client-hook': !this.skipClient,
+                configOptions: this.configOptions,
+                force: this.options.force
+            }
+        );
     }
 
     get initializing() {
@@ -425,25 +434,29 @@ module.exports = class extends BaseGenerator {
         return writeFiles();
     }
 
-    end() {
-        if (useBlueprint) return;
-        if (this.prodDatabaseType === 'oracle') {
-            this.log('\n\n');
-            this.warning(`${chalk.yellow.bold('You have selected Oracle database.\n')
-            }Please follow our documentation on using Oracle to set up the \n` +
-                'Oracle proprietary JDBC driver.');
-        }
-        this.log(chalk.green.bold('\nServer application generated successfully.\n'));
+    get end() {
+        return {
+            finish() {
+                if (useBlueprint) return;
+                if (this.prodDatabaseType === 'oracle') {
+                    this.log('\n\n');
+                    this.warning(`${chalk.yellow.bold('You have selected Oracle database.\n')
+                    }Please follow our documentation on using Oracle to set up the \n` +
+                        'Oracle proprietary JDBC driver.');
+                }
+                this.log(chalk.green.bold('\nServer application generated successfully.\n'));
 
-        let executable = 'mvnw';
-        if (this.buildTool === 'gradle') {
-            executable = 'gradlew';
-        }
-        let logMsgComment = '';
-        if (os.platform() === 'win32') {
-            logMsgComment = ` (${chalk.yellow.bold(executable)} if using Windows Command Prompt)`;
-        }
-        this.log(chalk.green(`${'Run your Spring Boot application:' +
-            '\n '}${chalk.yellow.bold(`./${executable}`)}${logMsgComment}`));
+                let executable = 'mvnw';
+                if (this.buildTool === 'gradle') {
+                    executable = 'gradlew';
+                }
+                let logMsgComment = '';
+                if (os.platform() === 'win32') {
+                    logMsgComment = ` (${chalk.yellow.bold(executable)} if using Windows Command Prompt)`;
+                }
+                this.log(chalk.green(`${'Run your Spring Boot application:' +
+                    '\n '}${chalk.yellow.bold(`./${executable}`)}${logMsgComment}`));
+            }
+        };
     }
 };

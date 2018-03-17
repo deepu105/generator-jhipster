@@ -279,25 +279,29 @@ module.exports = class extends BaseGenerator {
         return writeFiles();
     }
 
-    end() {
-        if (this.warning) {
-            this.log('\n');
-            this.log(chalk.red('Docker Compose configuration generated with missing images!'));
-            this.log(chalk.red(this.warningMessage));
-        } else {
-            this.log(`\n${chalk.bold.green('Docker Compose configuration successfully generated!')}`);
-        }
-        this.log(`You can launch all your infrastructure by running : ${chalk.cyan('docker-compose up -d')}`);
-        if (this.gatewayNb + this.monolithicNb > 1) {
-            this.log('\nYour applications will be accessible on these URLs:');
-            let portIndex = 8080;
-            this.appConfigs.forEach((appConfig) => {
-                if (appConfig.applicationType === 'gateway' || appConfig.applicationType === 'monolith') {
-                    this.log(`\t- ${appConfig.baseName}: http://localhost:${portIndex}`);
-                    portIndex++;
+    get end() {
+        return {
+            finish() {
+                if (this.warning) {
+                    this.log('\n');
+                    this.log(chalk.red('Docker Compose configuration generated with missing images!'));
+                    this.log(chalk.red(this.warningMessage));
+                } else {
+                    this.log(`\n${chalk.bold.green('Docker Compose configuration successfully generated!')}`);
                 }
-            });
-            this.log('\n');
-        }
+                this.log(`You can launch all your infrastructure by running : ${chalk.cyan('docker-compose up -d')}`);
+                if (this.gatewayNb + this.monolithicNb > 1) {
+                    this.log('\nYour applications will be accessible on these URLs:');
+                    let portIndex = 8080;
+                    this.appConfigs.forEach((appConfig) => {
+                        if (appConfig.applicationType === 'gateway' || appConfig.applicationType === 'monolith') {
+                            this.log(`\t- ${appConfig.baseName}: http://localhost:${portIndex}`);
+                            portIndex++;
+                        }
+                    });
+                    this.log('\n');
+                }
+            }
+        };
     }
 };
